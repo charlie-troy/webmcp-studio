@@ -178,7 +178,7 @@ let stepCounter = 0;
 function tick(time: number): void {
   const { project } = useStudio.getState();
   const transport = Tone.getTransport();
-  transport.bpm.rampTo(project.bpm, 0.05);
+  transport.bpm.rampTo(project.bpm, 0.05, time);
 
   const beat = stepCounter / 4;
   const beatEnd = beat + 0.25;
@@ -189,7 +189,7 @@ function tick(time: number): void {
   for (const track of project.tracks) {
     const audible = anySolo ? track.soloed : !track.muted;
     const nodes = ensureTrackNodes(track);
-    nodes.gain.gain.rampTo(audible ? track.volume : 0, 0.03);
+    nodes.gain.gain.rampTo(audible ? track.volume : 0, 0.03, time);
     if (!audible) continue;
 
     for (const note of track.notes) {

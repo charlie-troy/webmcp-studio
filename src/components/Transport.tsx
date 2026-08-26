@@ -1,5 +1,4 @@
 import { useStudio } from "../state/studioStore";
-import { startPlayback, stopPlayback } from "../audio/engine";
 import { useWebMCPStatus } from "../webmcp/statusStore";
 
 export function Transport() {
@@ -14,9 +13,14 @@ export function Transport() {
 
   const handlePlayStop = async () => {
     if (isPlaying) {
+      // Engine is loaded lazily on first play; grab the cached module here.
+      const { stopPlayback } = await import("../audio/engine");
       stopPlayback();
       stop();
     } else {
+      // Dynamic import defers Tone.js's AudioContext creation until the user
+      // gesture, so the console stays clean on load (no autoplay warning).
+      const { startPlayback } = await import("../audio/engine");
       await startPlayback();
       play();
     }

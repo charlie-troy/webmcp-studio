@@ -117,6 +117,27 @@ body {
 .spacer {
   flex: 1;
 }
+
+@media (max-width: 560px) {
+  .app-header,
+  .transport {
+    flex-wrap: wrap;
+  }
+  .app-header .header-stats {
+    display: none;
+  }
+  .session-name {
+    border-left: none;
+    padding-left: 0;
+    font-size: 12px;
+    width: 100%;
+    order: 3;
+  }
+  .mcp-badge {
+    white-space: normal;
+    text-align: right;
+  }
+}
 .mcp-badge {
   font-size: 11px;
   padding: 4px 10px;
