@@ -33,7 +33,7 @@ Vite + React + TypeScript · Zustand (state) · Tone.js (audio) · Zod → JSON 
 
 ## Links
 - **GitHub:** https://github.com/charlie-troy/webmcp-studio
-- **Live demo:** [DEPLOY_URL_PLACEHOLDER]
+- **Live demo:** https://webmcp-studio-five.vercel.app
 - **Video:** [YOUTUBE_URL_PLACEHOLDER] (script: `docs/VIDEO_SCRIPT.md`)
 
 ## Team
