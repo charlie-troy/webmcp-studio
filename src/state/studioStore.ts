@@ -77,10 +77,10 @@ export function makeDefaultProject(): Project {
 
 function emptyTrack(instrument: Instrument, index: number): Track {
   const defaults: Record<Instrument, { name: string; volume: number }> = {
-    dreamy: { name: "Dream Pad", volume: 0.7 },
-    pluck: { name: "Pluck", volume: 0.7 },
-    bass: { name: "Bass", volume: 0.8 },
-    drums: { name: "Drums", volume: 0.9 },
+    dreamy: { name: "Dream Pad", volume: 0.9 },
+    pluck: { name: "Pluck", volume: 0.75 },
+    bass: { name: "Bass", volume: 0.9 },
+    drums: { name: "Drums", volume: 0.8 },
   };
   return {
     id: uid("track"),
@@ -131,7 +131,7 @@ function demoProject(): Project {
   ].map((n) => ({ ...n, id: uid("note") }));
 
   const pluck = emptyTrack("pluck", 0);
-  pluck.volume = 0.5;
+  pluck.volume = 0.75;
   pluck.notes = Array.from({ length: 32 }, (_, i) => ({
     id: uid("note"),
     pitch: 72 + ((i * 5) % 12),

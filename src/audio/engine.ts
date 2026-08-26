@@ -64,15 +64,28 @@ function ensureTrackNodes(track: Track): TrackNodes {
         break;
       }
       case "pluck": {
-        const synth = new Tone.PolySynth(Tone.PluckSynth as any, {
-          dampening: 3200,
-          resonance: 0.9,
-        } as any);
-        synth.maxPolyphony = 16;
+        // PluckSynth is NOT a Monophonic voice, so Tone v15's PolySynth refuses
+        // it ("Voice must extend Monophonic class"). Use a small round-robin
+        // pool of individual PluckSynths instead.
+        const pool: Tone.PluckSynth[] = [];
         const delay = new Tone.FeedbackDelay({ delayTime: "8n", feedback: 0.25, wet: 0.22 });
-        synth.chain(delay, gain);
-        sources.push(synth, delay);
-        triggers = [{ trigger: (p, v, _d, t) => void synth.triggerAttackRelease(midi(p), t, v) }];
+        delay.connect(gain);
+        for (let i = 0; i < 12; i++) {
+          const pluck = new Tone.PluckSynth({ dampening: 3200, resonance: 0.9 });
+          pluck.connect(delay);
+          pool.push(pluck);
+        }
+        sources.push(...pool, delay);
+        let cursor = 0;
+        triggers = [
+          {
+            trigger: (p, _v, _d, t) => {
+              const pluck = pool[cursor % pool.length];
+              cursor++;
+              pluck.triggerAttack(midi(p), t);
+            },
+          },
+        ];
         break;
       }
       case "bass": {
@@ -170,8 +183,9 @@ function tick(time: number): void {
           track.instrument === "drums" ? nodes.triggers[drumLane(note.pitch)] : nodes.triggers[0];
         try {
           lane.trigger(note.pitch, note.velocity, note.duration, time);
-        } catch {
+        } catch (err) {
           /* voice exhaustion etc. — never kill the transport */
+          console.error(`[engine] trigger failed on "${track.name}"`, err);
         }
       }
     }
