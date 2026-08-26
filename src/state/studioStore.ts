@@ -77,10 +77,10 @@ export function makeDefaultProject(): Project {
 
 function emptyTrack(instrument: Instrument, index: number): Track {
   const defaults: Record<Instrument, { name: string; volume: number }> = {
-    dreamy: { name: "Dream Pad", volume: 0.9 },
-    pluck: { name: "Pluck", volume: 0.75 },
+    dreamy: { name: "Dream Pad", volume: 1.0 },
+    pluck: { name: "Pluck", volume: 1.0 },
     bass: { name: "Bass", volume: 0.9 },
-    drums: { name: "Drums", volume: 0.8 },
+    drums: { name: "Drums", volume: 0.72 },
   };
   return {
     id: uid("track"),
@@ -93,52 +93,66 @@ function emptyTrack(instrument: Instrument, index: number): Track {
   };
 }
 
-/** Build a pleasant starter project so the app never looks empty. */
+/**
+ * Build a pleasant starter project so the app never looks empty.
+ *
+ * Key: A minor. Progression: Am7 · Fmaj7 · G7 · Am7 (one bar each, looped
+ * twice). Every part spans the full 8 bars and stays inside the chords:
+ * pad = whole-note chord stabs, bass = root-fifth pulse, pluck = chord-tone
+ * arpeggio on 8ths, drums = boom-bap with a proper backbeat.
+ */
 function demoProject(): Project {
+  // One chord per bar, repeated across the loop: Am7 · Fmaj7 · G7 · Am7.
+  const chords = [
+    // Am7:  A3 C4 E4 G4 · bass A1 · fifth E2
+    { pad: [57, 60, 64, 67], bassRoot: 33, bassFifth: 40, arp: [69, 72, 76, 79] },
+    // Fmaj7: F3 A3 C4 E4 · bass F1 · fifth C2
+    { pad: [53, 57, 60, 64], bassRoot: 29, bassFifth: 36, arp: [65, 69, 72, 76] },
+    // G7:  G3 B3 D4 F4 · bass G1 · fifth D2
+    { pad: [55, 59, 62, 65], bassRoot: 31, bassFifth: 38, arp: [67, 71, 74, 77] },
+    { pad: [57, 60, 64, 67], bassRoot: 33, bassFifth: 40, arp: [69, 72, 76, 79] },
+  ];
+
   const drums = emptyTrack("drums", 0);
-  drums.notes = [
-    ...Array.from({ length: TOTAL_BARS * 2 }, (_, i) => i * 2).flatMap((beat) => [
-      { pitch: 36, start: beat, duration: 0.25, velocity: 0.9 },
-      { pitch: 42, start: beat + 1, duration: 0.25, velocity: 0.5 },
-      { pitch: 38, start: beat + 1 + 0.5, duration: 0.25, velocity: 0.7 } as Omit<Note, "id">,
-    ]),
-  ].map((n) => ({ ...n, id: uid("note") }));
-
   const bass = emptyTrack("bass", 0);
-  bass.notes = [
-    [33, 0], [33, 1], [40, 2], [33, 3],
-    [31, 4], [31, 5], [38, 6], [31, 7],
-    [28, 8], [28, 9], [35, 10], [28, 11],
-    [33, 12], [33, 13], [40, 14], [45, 15],
-  ].map(([pitch, start]) => ({
-    id: uid("note"),
-    pitch: pitch as number,
-    start: start as number,
-    duration: 0.75,
-    velocity: 0.8,
-  }));
-
   const keys = emptyTrack("dreamy", 0);
-  const chord = (root: number, beat: number): Array<Omit<Note, "id">> =>
-    [root, root + 3, root + 7, root + 10].map((p) => ({
-      pitch: p + 24,
-      start: beat,
-      duration: 1.75,
-      velocity: 0.45,
-    }));
-  keys.notes = [
-    ...chord(57, 0), ...chord(53, 4), ...chord(55, 8), ...chord(57, 12),
-  ].map((n) => ({ ...n, id: uid("note") }));
-
   const pluck = emptyTrack("pluck", 0);
-  pluck.volume = 0.75;
-  pluck.notes = Array.from({ length: 32 }, (_, i) => ({
-    id: uid("note"),
-    pitch: 72 + ((i * 5) % 12),
-    start: i * 0.5 + (i % 4 === 3 ? 0.25 : 0),
-    duration: 0.4,
-    velocity: 0.35,
-  }));
+
+  for (let bar = 0; bar < TOTAL_BARS; bar++) {
+    const c = chords[bar % chords.length];
+    const b = bar * BEATS_PER_BAR;
+
+    // Pad: whole-note chord stab on the downbeat, gentle velocity.
+    c.pad.forEach((pitch) =>
+      keys.notes.push({ id: uid("note"), pitch, start: b, duration: 3.5, velocity: 0.6 }),
+    );
+
+    // Bass: root on beats 1 & 3, fifth on 2 & 4 — a steady pulse.
+    [c.bassRoot, c.bassFifth, c.bassRoot, c.bassFifth].forEach((pitch, i) =>
+      bass.notes.push({ id: uid("note"), pitch, start: b + i, duration: 0.75, velocity: 0.8 }),
+    );
+
+    // Pluck: chord-tone arpeggio, 8ths: 1-3-5-3-1-3-5-3.
+    const arpPattern = [0, 1, 2, 1, 0, 1, 2, 1];
+    arpPattern.forEach((deg, i) =>
+      pluck.notes.push({ id: uid("note"), pitch: c.arp[deg], start: b + i * 0.5, duration: 0.35, velocity: 0.7 }),
+    );
+
+    // Drums: kick on 1 & 3, snare on 2 & 4 (the backbeat), hats on 8ths.
+    drums.notes.push({ id: uid("note"), pitch: 36, start: b, duration: 0.25, velocity: 0.9 });
+    drums.notes.push({ id: uid("note"), pitch: 38, start: b + 1, duration: 0.25, velocity: 0.7 });
+    drums.notes.push({ id: uid("note"), pitch: 36, start: b + 2, duration: 0.25, velocity: 0.85 });
+    drums.notes.push({ id: uid("note"), pitch: 38, start: b + 3, duration: 0.25, velocity: 0.65 });
+    for (let e = 0; e < 8; e++) {
+      drums.notes.push({
+        id: uid("note"),
+        pitch: 42,
+        start: b + e * 0.5,
+        duration: 0.125,
+        velocity: e % 2 ? 0.2 : 0.3,
+      });
+    }
+  }
 
   return { name: "Midnight Lo-fi", bpm: 76, tracks: [drums, bass, keys, pluck] };
 }

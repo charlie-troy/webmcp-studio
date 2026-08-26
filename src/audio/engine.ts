@@ -24,8 +24,23 @@ interface TrackNodes {
 
 const trackNodes = new Map<string, TrackNodes>();
 
+/** Master bus: every track feeds a shared gain + limiter so the mix can't clip. */
+let masterBus: { gain: Tone.Gain; limiter: Tone.Limiter } | null = null;
+function getMasterBus(): { gain: Tone.Gain; limiter: Tone.Limiter } {
+  if (!masterBus) {
+    const gain = new Tone.Gain(0.76);
+    // Fast-attack limiter: default 3ms attack lets kick transients through.
+    const limiter = new Tone.Limiter(-1);
+    (limiter as any).set({ attack: 0.001, release: 0.15 });
+    gain.connect(limiter);
+    limiter.toDestination();
+    masterBus = { gain, limiter };
+  }
+  return masterBus;
+}
+
 const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-const midi = (p: number) => `${Math.floor(p / 12 - 1)}${NOTE_NAMES[((p % 12) + 12) % 12]}`;
+const midi = (p: number) => `${NOTE_NAMES[((p % 12) + 12) % 12]}${Math.floor(p / 12 - 1)}`;
 /** Convert beats to seconds at the current transport tempo. */
 const beatsToSeconds = (b: number) => (60 / Tone.getTransport().bpm.value) * b;
 
@@ -44,17 +59,17 @@ function ensureTrackNodes(track: Track): TrackNodes {
       entry.gain.dispose();
     }
     const gain = new Tone.Gain(1);
-    gain.toDestination();
+    gain.connect(getMasterBus().gain);
     const sources: Tone.ToneAudioNode[] = [];
     let triggers: TriggerInput[];
 
     switch (track.instrument) {
       case "dreamy": {
         const synth = new Tone.PolySynth(Tone.FMSynth as any, {
-          harmonicity: 2.5,
-          modulationIndex: 6,
-          envelope: { attack: 0.05, decay: 0.6, sustain: 0.3, release: 1.6 },
-          modulationEnvelope: { attack: 0.2, decay: 0.4, sustain: 0.2, release: 1 },
+          harmonicity: 1.0,
+          modulationIndex: 2.5,
+          envelope: { attack: 0.6, decay: 0.8, sustain: 0.5, release: 2.4 },
+          modulationEnvelope: { attack: 0.4, decay: 0.6, sustain: 0.4, release: 1.6 },
         } as any);
         synth.maxPolyphony = 24;
         const reverb = new Tone.Reverb({ decay: 4, wet: 0.35 });
@@ -71,7 +86,7 @@ function ensureTrackNodes(track: Track): TrackNodes {
         const delay = new Tone.FeedbackDelay({ delayTime: "8n", feedback: 0.25, wet: 0.22 });
         delay.connect(gain);
         for (let i = 0; i < 12; i++) {
-          const pluck = new Tone.PluckSynth({ dampening: 3200, resonance: 0.9 });
+          const pluck = new Tone.PluckSynth({ dampening: 4500, resonance: 0.8 });
           pluck.connect(delay);
           pool.push(pluck);
         }
