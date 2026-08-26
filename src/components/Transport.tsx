@@ -1,6 +1,6 @@
 import { useStudio } from "../state/studioStore";
 import { startPlayback, stopPlayback } from "../audio/engine";
-import { getWebMCPStatus } from "../webmcp/modelContext";
+import { useWebMCPStatus } from "../webmcp/statusStore";
 
 export function Transport() {
   const isPlaying = useStudio((s) => s.isPlaying);
@@ -10,7 +10,7 @@ export function Transport() {
   const stop = useStudio((s) => s.stop);
   const setLoop = useStudio((s) => s.setLoop);
   const setBpm = useStudio((s) => s.setBpm);
-  const status = getWebMCPStatus();
+  const mode = useWebMCPStatus((s) => s.mode);
 
   const handlePlayStop = async () => {
     if (isPlaying) {
@@ -45,10 +45,11 @@ export function Transport() {
         🔁 Loop
       </button>
       <div className="spacer" />
-      <div className={`mcp-badge ${status.mode}`}>
-        {status.mode === "native" && "● WebMCP native"}
-        {status.mode === "polyfill" && "● WebMCP polyfill"}
-        {status.mode === "unavailable" && "○ WebMCP unavailable"}
+      <div className={`mcp-badge ${mode}`} role="status">
+        {mode === "native" && "● WebMCP native"}
+        {mode === "polyfill" && "● WebMCP polyfill"}
+        {mode === "unavailable" && "○ WebMCP unavailable"}
+        {mode === "checking" && "○ WebMCP…"}
       </div>
     </div>
   );

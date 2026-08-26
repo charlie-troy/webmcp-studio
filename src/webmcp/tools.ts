@@ -140,7 +140,7 @@ export async function registerAllTools(): Promise<number> {
 
     {
       name: "rename_track",
-      description: "Rename a track.",
+      description: "Rename a track to a new display name (up to 60 characters).",
       inputSchema: trackRef.extend({ name: z.string().max(60) }),
       execute: (input) => {
         const track = resolveTrack(input);
@@ -254,7 +254,11 @@ export async function registerAllTools(): Promise<number> {
         if (!track) return { summary: "Track not found.", ok: false };
         const count = useStudio.getState().transposeTrack(track.id, input.semitones, "agent");
         if (count == null) return { summary: "Track not found.", ok: false };
-        return { summary: `Transposed ${count} notes on "${track.name}" by ${input.semitones > 0 ? "+" : ""}${input.semitones} semitones.`, ok: true };
+        return {
+          summary: `Transposed ${count} notes on "${track.name}" by ${input.semitones > 0 ? "+" : ""}${input.semitones} semitones.`,
+          ok: true,
+          notes_changed: count,
+        };
       },
     },
 
@@ -271,7 +275,11 @@ export async function registerAllTools(): Promise<number> {
         const gridValue = input.grid === "1/4" ? 1 : input.grid === "1/8" ? 0.5 : 0.25;
         const count = useStudio.getState().quantizeTrack(track.id, gridValue, "agent");
         if (count == null) return { summary: "Track not found.", ok: false };
-        return { summary: `Quantized ${count} notes on "${track.name}" to ${input.grid}.`, ok: true };
+        return {
+          summary: `Quantized ${count} notes on "${track.name}" to ${input.grid}.`,
+          ok: true,
+          notes_changed: count,
+        };
       },
     },
 

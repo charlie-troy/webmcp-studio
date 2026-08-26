@@ -11,6 +11,7 @@ import {
 } from "@mcp-b/webmcp-polyfill";
 import { toJSONSchema, type ZodType } from "zod";
 import { logToolCall } from "./activityStore";
+import { useWebMCPStatus } from "./statusStore";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -20,6 +21,11 @@ export interface WebMCPStatus {
 
 let cachedModelContext: any = null;
 let status: WebMCPStatus["mode"] = "unavailable";
+
+function setStatus(mode: WebMCPStatus["mode"] | "checking") {
+  if (mode !== "checking") status = mode;
+  useWebMCPStatus.getState().setMode(mode);
+}
 
 export function getWebMCPStatus(): WebMCPStatus {
   return { mode: status };
@@ -43,12 +49,13 @@ function findNativeModelContext(): any {
  * it via Origin-Agent-Cluster or Permissions-Policy) and degrades gracefully.
  */
 export async function initWebMCP(): Promise<void> {
+  setStatus("checking");
   const native = findNativeModelContext();
   if (native) {
     try {
       await native.getTools();
       cachedModelContext = native;
-      status = "native";
+      setStatus("native");
       return;
     } catch {
       /* native present but locked down — try the polyfill below */
@@ -61,20 +68,20 @@ export async function initWebMCP(): Promise<void> {
   }
   const mc = findNativeModelContext();
   if (!mc) {
-    status = "unavailable";
+    setStatus("unavailable");
     return;
   }
   try {
     await mc.getTools();
     cachedModelContext = mc;
-    status = "polyfill";
+    setStatus("polyfill");
   } catch (err) {
     console.warn(
       "[webmcp] modelContext is locked down in this context " +
         "(Origin-Agent-Cluster / Permissions-Policy). Tools disabled; the app still works for humans.",
       err,
     );
-    status = "unavailable";
+    setStatus("unavailable");
   }
 }
 
