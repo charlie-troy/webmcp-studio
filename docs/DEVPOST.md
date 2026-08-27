@@ -18,6 +18,13 @@ A DAW is full of precise, stateful operations — "quantize", "transpose down 3 
 
 **What became possible that wasn't before:** a human and an agent composing **the same song on the same screen**, where the human watches every note land, steers with natural language, hears edits mid-loop, and can undo any single agent action. The audio engine (Tone.js) reads live store state on a 16th-note scheduler, so agent edits are audible instantly — collaboration, not automation.
 
+## Judging fit
+
+- **WebMCP Leverage:** 17 narrow, schema-described tools expose the DAW's real operations; the agent reads the live session before editing, and structured results report what changed.
+- **Execution:** a seeded 8-bar song makes the first run immediate; the same store powers piano-roll clicks and agent calls; native WebMCP and the official polyfill are both supported.
+- **Potential Impact:** musicians can delegate repetitive editing while retaining authorship, audibility, visibility, and one-call undo.
+- **Creativity & Ambition:** the agent is a bandmate that can alter a living arrangement mid-loop, not a text generator that exports a detached file.
+
 ## How it works / demo flow
 1. Open the site in ChatGPT's desktop browser (or Chrome with the WebMCP flag).
 2. Ask: *"Compose a dreamy lo-fi beat at 72 BPM."* Watch `set_bpm` → `create_track` ×4 → `add_notes` calls populate the piano roll.

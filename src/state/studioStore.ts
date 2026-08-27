@@ -27,7 +27,7 @@ interface StudioState {
   /* selection */
   selectTrack: (id: string | null) => void;
 
-  /* mutations — every one snapshots first */
+  /* mutations — changed actions snapshot first */
   setBpm: (bpm: number, source?: "human" | "agent") => void;
   createTrack: (opts?: { name?: string; instrument?: Instrument }, source?: "human" | "agent") => Track;
   deleteTrack: (id: string, source?: "human" | "agent") => boolean;
@@ -169,6 +169,9 @@ export const useStudio = create<StudioState>((set, get) => {
       const draft = structuredClone(s.project);
       const result = fn(draft);
       const next = result ?? draft;
+      // Failed and idempotent actions must not create fake undo points. This
+      // keeps "undo the last agent action" aligned with the last real change.
+      if (JSON.stringify(before) === JSON.stringify(next)) return s;
       return {
         project: next,
         history: [...s.history, { snapshot: before, source, label }].slice(-100),
@@ -290,11 +293,12 @@ export const useStudio = create<StudioState>((set, get) => {
           .map((n) => ({
             id: uid("note"),
             pitch: clamp(Math.round(n.pitch), 21, 108),
-            start: Math.max(0, n.start),
+            start: clamp(n.start, 0, TOTAL_BEATS - 0.05),
             duration: clamp(n.duration ?? 0.5, 0.05, 16),
             velocity: clamp(n.velocity ?? 0.8, 0.01, 1),
           }))
-          .filter((n) => n.start < TOTAL_BEATS);
+          .map((n) => ({ ...n, duration: Math.min(n.duration, TOTAL_BEATS - n.start) }))
+          .filter((n) => n.duration >= 0.05 && n.start < TOTAL_BEATS);
         t.notes.push(...added);
       });
       return added;
@@ -333,7 +337,7 @@ export const useStudio = create<StudioState>((set, get) => {
         if (t) {
           count = t.notes.length;
           t.notes.forEach((n) => {
-            n.start = Math.round(n.start / grid) * grid;
+            n.start = clamp(Math.round(n.start / grid) * grid, 0, TOTAL_BEATS - n.duration);
           });
         }
       });
@@ -347,11 +351,13 @@ export const useStudio = create<StudioState>((set, get) => {
         if (!t) return;
         const section = t.notes.filter((n) => n.start >= startBeat && n.start < endBeat);
         const offset = destinationBeat - startBeat;
-        const clones = section.map((n) => ({
-          ...n,
-          id: uid("note"),
-          start: n.start + offset,
-        }));
+        const clones = section
+          .map((n) => ({
+            ...n,
+            id: uid("note"),
+            start: n.start + offset,
+          }))
+          .filter((n) => n.start >= 0 && n.start + n.duration <= TOTAL_BEATS);
         t.notes.push(...clones);
         copied = clones.length;
       });

@@ -39,7 +39,8 @@ enhancement, exactly as the standard intends.
 | `transpose_track` / `quantize_track` / `duplicate_section` | action | Pattern operations |
 | `undo_last_agent_action` | destructive | Revert the last agent edit |
 
-Every mutating tool snapshots state first, so `undo_last_agent_action` always works.
+Every changed tool action snapshots state, so `undo_last_agent_action` always targets
+the last real agent edit; failed and idempotent calls do not pollute the undo stack.
 Destructive tools are annotated with `destructiveHint` so agent harnesses can gate them.
 
 ## Architecture

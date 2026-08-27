@@ -7,7 +7,7 @@
  */
 import { z } from "zod";
 import { registerTool, type ToolDefinition } from "./modelContext";
-import { useStudio, describeTrack } from "../state/studioStore";
+import { TOTAL_BEATS, useStudio, describeTrack } from "../state/studioStore";
 
 const instrumentSchema = z.enum(["dreamy", "pluck", "bass", "drums"]);
 
@@ -28,12 +28,16 @@ function resolveTrack(input: { track_id?: string; track_name?: string }) {
   return track;
 }
 
-const noteSchema = z.object({
+const noteSchema = z
+  .object({
   pitch: z.number().int().min(21).max(108).describe("MIDI pitch 21–108. Drums: 36=kick, 38=snare, 42=hi-hat."),
   start: z.number().min(0).max(32).describe("Start in beats (4 beats per bar, 8 bars = 32 beats total)."),
   duration: z.number().min(0.05).max(16).default(0.5).describe("Length in beats."),
   velocity: z.number().min(0.01).max(1).default(0.8).describe("Volume of the note, 0–1."),
-});
+  })
+  .refine((note) => note.start + note.duration <= TOTAL_BEATS, {
+    message: "Note must end within the 8-bar (32-beat) session.",
+  });
 
 export async function registerAllTools(): Promise<number> {
   const defs: ToolDefinition[] = [
@@ -293,7 +297,13 @@ export async function registerAllTools(): Promise<number> {
         start_beat: z.number().min(0),
         end_beat: z.number().max(32),
         destination_beat: z.number().min(0).max(32),
-      }),
+      })
+        .refine((input) => input.end_beat > input.start_beat, {
+          message: "end_beat must be greater than start_beat.",
+        })
+        .refine((input) => input.destination_beat + (input.end_beat - input.start_beat) <= TOTAL_BEATS, {
+          message: "The duplicated section must fit within the 8-bar session.",
+        }),
       execute: (input) => {
         const track = resolveTrack(input);
         if (!track) return { summary: "Track not found.", ok: false };
@@ -301,7 +311,11 @@ export async function registerAllTools(): Promise<number> {
           .getState()
           .duplicateSection(track.id, input.start_beat, input.end_beat, input.destination_beat, "agent");
         if (copied == null) return { summary: "Track not found.", ok: false };
-        return { summary: `Copied ${copied} notes on "${track.name}" from beat ${input.start_beat} to beat ${input.destination_beat}.`, ok: true };
+        return {
+          summary: `Copied ${copied} notes on "${track.name}" from beat ${input.start_beat} to beat ${input.destination_beat}.`,
+          ok: true,
+          notes_copied: copied,
+        };
       },
     },
 
