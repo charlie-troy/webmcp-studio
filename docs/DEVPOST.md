@@ -44,7 +44,7 @@ Vite + React + TypeScript · Zustand (state) · Tone.js (audio) · Zod → JSON 
 - **Video:** [YOUTUBE_URL_PLACEHOLDER] (script: `docs/VIDEO_SCRIPT.md`)
 
 ## Team
-[Your name] — solo
+Charlie Troy — solo
 
 ## Tags
 webmcp, ai-agents, music, daw, web-audio, creative-tools
