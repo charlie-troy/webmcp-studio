@@ -33,10 +33,10 @@ export function ActivityPanel() {
   const clear = useActivityStore((s) => s.clear);
 
   return (
-    <aside className="activity-panel">
+    <aside className="activity-panel" aria-label="Agent activity log" aria-live="polite">
       <div className="panel-title">
         Agent Activity
-        <button className="clear-btn" onClick={clear} title="Clear log">
+        <button className="clear-btn" onClick={clear} aria-label="Clear activity log" title="Clear log">
           ✕
         </button>
       </div>
@@ -54,7 +54,7 @@ export function ActivityPanel() {
         {entries.map((e) => (
           <div key={e.id} className={`activity-entry ${e.status}`}>
             <div className="entry-head">
-              <span className="entry-status-dot" />
+              <span className="entry-status-dot" aria-hidden="true" />
               <span className="entry-tool">{e.tool}</span>
               <span className="entry-time">
                 {new Date(e.timestamp).toLocaleTimeString([], { hour12: false })}
